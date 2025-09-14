@@ -66,10 +66,23 @@ export function calculateSpreadProbabilities(scoreProbabilities, spread) {
     const [homeScore, awayScore] = scoreString.split('-').map(Number);
     const margin = homeScore - awayScore;
     
-    if (margin + spread > 0) {
-      coverProb += probability;
+    // For home team to cover the spread:
+    // - If spread is positive (home favored): margin must be > spread
+    // - If spread is negative (home underdog): margin + |spread| must be > 0
+    if (spread > 0) {
+      // Home team is favored by 'spread' points, they need to win by more than 'spread'
+      if (margin > spread) {
+        coverProb += probability;
+      } else {
+        notCoverProb += probability;
+      }
     } else {
-      notCoverProb += probability;
+      // Home team is underdog by |spread| points, they need to lose by less than |spread| (or win)
+      if (margin + Math.abs(spread) > 0) {
+        coverProb += probability;
+      } else {
+        notCoverProb += probability;
+      }
     }
   });
   

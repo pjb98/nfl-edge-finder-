@@ -5,6 +5,7 @@ import { calculateAdvancedSpreadProb } from '../utils/advancedSpreadModel'
 import { getTeamStats2025 } from '../data/team-stats-2025'
 import nflDataPyService from '../services/nflDataPyService'
 import { config } from '../config/environment'
+import { calculateUnits } from '../utils/performanceUtils'
 
 function Performance() {
   const [performanceData, setPerformanceData] = useState(null)
@@ -26,6 +27,18 @@ function Performance() {
       
       if (completedGames.length > 0) {
         const analysis = analyzeModelPerformance(completedGames)
+        const totalWins = analysis.edgeWins
+        const totalBets = analysis.edgeWins + analysis.edgeLosses  
+        const winRate = totalBets > 0 ? (totalWins / totalBets) * 100 : 0
+        
+        console.log('📊 Performance: Results for season', selectedSeason, ':', {
+          totalWins,
+          totalLosses: analysis.edgeLosses,
+          totalBets,
+          winRate: winRate.toFixed(1) + '%',
+          totalUnits: analysis.totalUnits.toFixed(2)
+        })
+        
         setPerformanceData(analysis)
         setBestEdges(analysis.bestEdgePicks)
         setWeeklyResults(analysis.weeklyBreakdown)
@@ -546,17 +559,6 @@ function Performance() {
   })
   
   // Calculate units won/lost based on American odds
-  const calculateUnits = (americanOdds, isWin, betSize = 1) => {
-    if (!isWin) return -betSize // Loss = lose the bet amount
-    
-    if (americanOdds > 0) {
-      // Positive odds: +200 means win $2 for every $1 bet
-      return betSize * (americanOdds / 100)
-    } else {
-      // Negative odds: -150 means win $1 for every $1.50 bet
-      return betSize * (100 / Math.abs(americanOdds))
-    }
-  }
 
   // Parse weather conditions string into structured data
   const parseWeatherConditions = (weatherString) => {

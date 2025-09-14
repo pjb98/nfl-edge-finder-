@@ -1,5 +1,7 @@
 import { useState, useEffect } from 'react'
 import { analyzeGame } from '../utils/poissonModel'
+import { comprehensiveGameAnalysis } from '../utils/enhancedBettingModel'
+import { calculateAdvancedSpreadProb } from '../utils/advancedSpreadModel'
 import { getCurrentNFLInfo } from '../data/getCurrentNFLInfo'
 import { getTeamStats2025 } from '../data/team-stats-2025'
 import { formatOddsWithProbability, formatSpreadWithOdds, formatTotalWithOdds, formatMoneyline, formatOddsOnly } from '../utils/oddsFormatting'
@@ -155,12 +157,25 @@ function Dashboard({
         const processedGames = await Promise.all(processedGamesPromises)
         setGames(processedGames)
 
-        // Analyze each game
+        // Analyze each game using the comprehensive model (same as performance calculations)
         const gameAnalyses = processedGames.map(game => {
-          const analysis = analyzeGame(game.homeTeamStats, game.awayTeamStats, game.bettingLines)
+          // Create game context for comprehensive analysis
+          const gameContext = {
+            isDivisionGame: game.homeTeamStats.division === game.awayTeamStats.division,
+            weather: { temperature: 70, windSpeed: 5, precipitation: false },
+            isRevenge: false,
+            isPrimeTime: false,
+            homeRecentForm: [],
+            awayRecentForm: [],
+            homeInjuries: [],
+            awayInjuries: []
+          }
+          
+          const analysis = comprehensiveGameAnalysis(game.homeTeamStats, game.awayTeamStats, game.bettingLines, gameContext)
           return {
             ...game,
-            analysis
+            analysis,
+            gameContext
           }
         })
 
@@ -426,7 +441,7 @@ function Dashboard({
                 <span className="game-date">{new Date(game.gameDate).toLocaleDateString()}</span>
                 <span className="game-time">{game.gameTime}</span>
                 <span className="venue">{game.venue}</span>
-                <span className="referee">{game.referee}</span>
+                <span className="referee">Referee: {game.referee}</span>
                 <span className="weather">{game.weatherConditions}</span>
                 {game.status && (
                   <span className="game-status">
@@ -478,25 +493,57 @@ function Dashboard({
                   <span className="away-odds">{game.awayTeamAbbr}: {formatOddsWithProbability(game.bettingLines.awayMoneyline)}</span>
                   <span className="home-odds">{game.homeTeamAbbr}: {formatOddsWithProbability(game.bettingLines.homeMoneyline)}</span>
                 </div>
-                <div className="calculated-probabilities">
-                  <small>Model Prediction: {game.homeTeamAbbr} {(game.analysis.probabilities.moneyline.homeWinProb * 100).toFixed(1)}% | {game.awayTeamAbbr} {(game.analysis.probabilities.moneyline.awayWinProb * 100).toFixed(1)}%</small>
-                  {(() => {
-                    const homeImplied = Math.abs(game.bettingLines.homeMoneyline) / (Math.abs(game.bettingLines.homeMoneyline) + 100) * 100;
-                    const awayImplied = Math.abs(game.bettingLines.awayMoneyline) / (Math.abs(game.bettingLines.awayMoneyline) + 100) * 100;
-                    const homeEdge = (game.analysis.probabilities.moneyline.homeWinProb * 100) - homeImplied;
-                    const awayEdge = (game.analysis.probabilities.moneyline.awayWinProb * 100) - awayImplied;
-                    const significantEdge = Math.abs(homeEdge) > 5 || Math.abs(awayEdge) > 5;
-                    
-                    if (significantEdge) {
-                      return (
-                        <small style={{color: '#22c55e', fontWeight: 'bold'}}>
-                          🔥 {homeEdge > 5 ? `${game.homeTeamAbbr} +${homeEdge.toFixed(1)}% edge` : awayEdge > 5 ? `${game.awayTeamAbbr} +${awayEdge.toFixed(1)}% edge` : ''}
-                        </small>
-                      );
+                {(() => {
+                  // Show model predictions only if we would actually bet (using same criteria as performance calculations)
+                  const homeWinProb = game.analysis.probabilities.moneyline.homeWinProb * 100;
+                  const awayWinProb = game.analysis.probabilities.moneyline.awayWinProb * 100;
+                  const homeImplied = Math.abs(game.bettingLines.homeMoneyline) / (Math.abs(game.bettingLines.homeMoneyline) + 100) * 100;
+                  const awayImplied = Math.abs(game.bettingLines.awayMoneyline) / (Math.abs(game.bettingLines.awayMoneyline) + 100) * 100;
+                  
+                  const homeBaseEdge = homeWinProb - homeImplied;
+                  const awayBaseEdge = awayWinProb - awayImplied;
+                  
+                  // Apply pattern bonuses (simplified)
+                  let mlQualityBonus = 0;
+                  let mlPatternMatch = false;
+                  if (game.gameContext?.isDivisionGame && game.bettingLines.awayMoneyline >= 180 && game.bettingLines.awayMoneyline <= 350) {
+                    if (awayBaseEdge > 2) {
+                      mlQualityBonus += 4.5;
+                      mlPatternMatch = true;
                     }
-                    return null;
-                  })()}
-                </div>
+                  }
+                  if (game.bettingLines.homeMoneyline >= 200 && homeBaseEdge > 3) {
+                    mlQualityBonus += 4.2;
+                    mlPatternMatch = true;
+                  }
+                  if (game.bettingLines.awayMoneyline >= 200 && awayBaseEdge > 3) {
+                    mlQualityBonus += 4.2;
+                    mlPatternMatch = true;
+                  }
+                  
+                  const adjustedHomeMLEdge = homeBaseEdge + (homeBaseEdge > 0 ? mlQualityBonus : 0);
+                  const adjustedAwayMLEdge = awayBaseEdge + (awayBaseEdge > 0 ? mlQualityBonus : 0);
+                  const mlMinEdge = mlPatternMatch ? 5.5 : 8.5;
+                  
+                  // Check if we would actually bet
+                  const homeMLBet = adjustedHomeMLEdge >= mlMinEdge && 
+                    !(game.bettingLines.homeMoneyline >= -180 && game.bettingLines.homeMoneyline <= -120);
+                  const awayMLBet = adjustedAwayMLEdge >= mlMinEdge && 
+                    !(game.bettingLines.awayMoneyline >= -180 && game.bettingLines.awayMoneyline <= -120);
+                  
+                  if (homeMLBet || awayMLBet) {
+                    return (
+                      <div className="calculated-probabilities">
+                        <small>Model Prediction: {game.homeTeamAbbr} {homeWinProb.toFixed(1)}% | {game.awayTeamAbbr} {awayWinProb.toFixed(1)}%</small>
+                        <small style={{color: '#22c55e', fontWeight: 'bold'}}>
+                          🔥 {homeMLBet ? `${game.homeTeamAbbr} +${adjustedHomeMLEdge.toFixed(1)}% edge` : 
+                              awayMLBet ? `${game.awayTeamAbbr} +${adjustedAwayMLEdge.toFixed(1)}% edge` : ''}
+                        </small>
+                      </div>
+                    );
+                  }
+                  return null;
+                })()}
               </div>
 
               {game.analysis.probabilities.spread && (
@@ -504,15 +551,32 @@ function Dashboard({
                   <span className="bet-type">Spread</span>
                   <div className="odds-display">
                     <span className="spread-odds">
-                      {game.bettingLines.spread < 0 
-                        ? `${game.homeTeamAbbr} ${formatSpreadWithOdds(game.bettingLines.spread, -110)}`
-                        : `${game.awayTeamAbbr} ${formatSpreadWithOdds(-game.bettingLines.spread, -110)}`
+                      {game.bettingLines.spread > 0 
+                        ? `${game.homeTeamAbbr} ${formatSpreadWithOdds(-game.bettingLines.spread, -110)}`
+                        : `${game.awayTeamAbbr} ${formatSpreadWithOdds(game.bettingLines.spread, -110)}`
                       }
                     </span>
                   </div>
-                  <div className="calculated-probabilities">
-                    <small>Model Prediction: {(game.analysis.probabilities.spread.coverProb * 100).toFixed(1)}% chance to cover</small>
-                  </div>
+                  {(() => {
+                    // Use advanced spread analysis to match performance calculations
+                    const spreadAnalysis = calculateAdvancedSpreadProb(game.homeTeamStats, game.awayTeamStats, game);
+                    
+                    if (spreadAnalysis.recommendation && spreadAnalysis.recommendation !== 'PASS') {
+                      const recommendedTeam = spreadAnalysis.recommendation === 'HOME' ? game.homeTeamAbbr : game.awayTeamAbbr;
+                      const probability = spreadAnalysis.recommendation === 'HOME' ? 
+                        spreadAnalysis.homeWinProb : spreadAnalysis.awayWinProb;
+                      
+                      return (
+                        <div className="calculated-probabilities">
+                          <small>Model Prediction: {recommendedTeam} {(probability * 100).toFixed(1)}% to cover</small>
+                          <small style={{color: '#22c55e', fontWeight: 'bold'}}>
+                            🔥 {recommendedTeam} spread bet
+                          </small>
+                        </div>
+                      );
+                    }
+                    return null;
+                  })()}
                 </div>
               )}
 
@@ -523,9 +587,24 @@ function Dashboard({
                     <span className="total-over">O{game.bettingLines.total} {formatOddsOnly(-110)}</span>
                     <span className="total-under">U{game.bettingLines.total} {formatOddsOnly(-110)}</span>
                   </div>
-                  <div className="calculated-probabilities">
-                    <small>Model Prediction: Over {(game.analysis.probabilities.total.overProb * 100).toFixed(1)}% | Under {(game.analysis.probabilities.total.underProb * 100).toFixed(1)}%</small>
-                  </div>
+                  {(() => {
+                    // Show total prediction only if we would actually bet (using same criteria as performance)
+                    const overProb = game.analysis.probabilities.total.overProb * 100;
+                    const underProb = game.analysis.probabilities.total.underProb * 100;
+                    const predictedTotal = game.analysis.expectedPoints.home + game.analysis.expectedPoints.away;
+                    
+                    // Same criteria as performance calculations: bet if predicted total differs by 3+ points
+                    const hasTotalEdge = Math.abs(predictedTotal - game.bettingLines.total) >= 3;
+                    
+                    if (hasTotalEdge) {
+                      return (
+                        <div className="calculated-probabilities">
+                          <small>Model Prediction: Over {overProb.toFixed(1)}% | Under {underProb.toFixed(1)}%</small>
+                        </div>
+                      );
+                    }
+                    return null;
+                  })()}
                 </div>
               )}
             </div>
@@ -534,9 +613,33 @@ function Dashboard({
               <div className="edge-summary">
                 <strong>Best Edge:</strong> 
                 <span className="edge-value">
-                  {game.analysis.probabilities.total && 
-                   game.analysis.probabilities.total.overProb > 0.55 ? 
-                   'Over +EV' : 'Under Analysis'}
+                  {(() => {
+                    // For completed games, show actual result
+                    if (game.isCompleted && game.homeScore !== null && game.awayScore !== null && game.bettingLines.total) {
+                      const totalScore = game.homeScore + game.awayScore;
+                      const overUnderLine = game.bettingLines.total;
+                      if (totalScore > overUnderLine) {
+                        return 'Over Hit ✅';
+                      } else if (totalScore < overUnderLine) {
+                        return 'Under Hit ✅';
+                      } else {
+                        return 'Push';
+                      }
+                    }
+                    
+                    // For future games, show analysis
+                    if (game.analysis.probabilities.total) {
+                      if (game.analysis.probabilities.total.overProb > 0.55) {
+                        return 'Over +EV';
+                      } else if (game.analysis.probabilities.total.underProb > 0.55) {
+                        return 'Under +EV';
+                      } else {
+                        return 'No Edge';
+                      }
+                    }
+                    
+                    return 'Analyzing...';
+                  })()}
                 </span>
               </div>
             </div>
