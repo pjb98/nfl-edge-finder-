@@ -137,8 +137,8 @@ function analyzeTrends(homeTeam, awayTeam, gameContext) {
   return trendScore
 }
 
-// Advanced spread probability calculation
-export function calculateAdvancedSpreadProb(homeTeam, awayTeam, spread, gameContext = {}) {
+// Advanced spread probability calculation (original version)
+function calculateAdvancedSpreadProbOriginal(homeTeam, awayTeam, spread, gameContext = {}) {
   // Get all the factors
   const factors = analyzeSpreadFactors(homeTeam, awayTeam, spread, gameContext)
   
@@ -343,4 +343,21 @@ function generateReasoning(factors, side) {
   }
   
   return reasons.join(', ') || 'Statistical edge detected'
+}
+
+// Overloaded version to handle game objects (as called from Dashboard.jsx)
+export function calculateAdvancedSpreadProb(homeTeamStats, awayTeamStats, gameOrSpread, gameContext = {}) {
+  // Handle different call signatures
+  if (typeof gameOrSpread === 'object' && gameOrSpread !== null) {
+    // Called with game object: calculateAdvancedSpreadProb(homeTeamStats, awayTeamStats, game)
+    const game = gameOrSpread;
+    const spread = game.bettingLines?.spread || 0;
+    const context = game.gameContext || gameContext;
+
+    return calculateAdvancedSpreadProbOriginal(homeTeamStats, awayTeamStats, spread, context);
+  } else {
+    // Called with spread value: calculateAdvancedSpreadProb(homeTeamStats, awayTeamStats, spread, gameContext)
+    const spread = gameOrSpread || 0;
+    return calculateAdvancedSpreadProbOriginal(homeTeamStats, awayTeamStats, spread, gameContext);
+  }
 }

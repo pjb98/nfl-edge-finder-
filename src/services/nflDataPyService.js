@@ -157,12 +157,14 @@ class NFLDataPyService {
         gameDate: game.gameday,
         gameTime: gameTime,
         venue: game.stadium || game.location || 'TBD',
-        network: game.referee || 'TBD', // Referee from nfl-data-py
+        network: game.network || 'TBD', // TV network
+        referee: game.referee || 'TBD', // Referee from nfl-data-py
         weatherConditions: weatherConditions,
-        status: game.home_score !== null ? 'STATUS_FINAL' : 'STATUS_SCHEDULED',
-        isCompleted: game.home_score !== null && game.away_score !== null,
-        homeScore: game.home_score || 0,
-        awayScore: game.away_score || 0,
+        status: game.home_score !== null && game.home_score !== undefined ? 'STATUS_FINAL' : 'STATUS_SCHEDULED',
+        isCompleted: game.home_score !== null && game.home_score !== undefined &&
+                    game.away_score !== null && game.away_score !== undefined,
+        homeScore: game.home_score !== null && game.home_score !== undefined ? game.home_score : null,
+        awayScore: game.away_score !== null && game.away_score !== undefined ? game.away_score : null,
         
         // Real betting lines from nfl-data-py!
         bettingLines: {

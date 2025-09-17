@@ -167,8 +167,18 @@ export function analyzeGame(homeTeamStats, awayTeamStats, bettingLines = {}) {
   
   // Calculate market probabilities
   const moneyline = calculateMoneylineProbabilities(scoreProbabilities);
-  const spread = bettingLines.spread ? calculateSpreadProbabilities(scoreProbabilities, bettingLines.spread) : null;
-  const total = bettingLines.total ? calculateTotalProbabilities(scoreProbabilities, bettingLines.total) : null;
+
+  // Calculate spread probabilities with error handling
+  let spread = null;
+  if (bettingLines.spread && typeof bettingLines.spread === 'number') {
+    spread = calculateSpreadProbabilities(scoreProbabilities, bettingLines.spread);
+  }
+
+  // Calculate total probabilities with error handling
+  let total = null;
+  if (bettingLines.total && typeof bettingLines.total === 'number') {
+    total = calculateTotalProbabilities(scoreProbabilities, bettingLines.total);
+  }
   
   return {
     expectedPoints: {

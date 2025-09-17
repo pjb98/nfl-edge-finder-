@@ -10,10 +10,10 @@ export const config = {
   show2024Data: isDevelopment,
   
   // Default season
-  defaultSeason: isProduction ? '2025' : '2025',
+  defaultSeason: '2025',
   
   // Available seasons
-  availableSeasons: isProduction ? ['2025'] : ['2024', '2025'],
+  availableSeasons: ['2025'],
   
   // API configuration
   api: {

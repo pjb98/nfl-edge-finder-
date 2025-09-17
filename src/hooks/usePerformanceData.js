@@ -12,6 +12,14 @@ export const usePerformanceData = () => {
   const getCompletedGamesForAnalysis = async (selectedSeason = '2025') => {
     const completedGames = []
     
+    // Clear debug logs at start
+    window.performanceDebugLogs = []
+    
+    // Force add initial debug message
+    const initMsg = `🎯 PERFORMANCE DEBUG: Starting analysis for season ${selectedSeason}`;
+    console.log(initMsg);
+    window.performanceDebugLogs.push(initMsg);
+    
     try {
       const season = parseInt(selectedSeason)
       let weeksToAnalyze = []
@@ -22,26 +30,65 @@ export const usePerformanceData = () => {
         weeksToAnalyze = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18]
       }
       
+      console.log(`🎯 PERFORMANCE: Starting analysis for ${season}, weeks:`, weeksToAnalyze)
+      const weeksMsg = `📅 PERFORMANCE DEBUG: Analyzing weeks: ${weeksToAnalyze.join(', ')}`;
+      window.performanceDebugLogs.push(weeksMsg);
+      
       for (const week of weeksToAnalyze) {
         try {
           const weekGames = await nflDataPyService.getWeekSchedule(season, week, 'REG')
           const transformedGames = nflDataPyService.transformScheduleToGameFormat(weekGames)
           
           const completed = transformedGames.filter(game => game.isCompleted)
+          
+          // Add debug info for each week
+          const weekMsg = `📊 Week ${week}: Found ${completed.length} completed games`;
+          console.log(weekMsg);
+          window.performanceDebugLogs.push(weekMsg);
+          
+          // Log Week 2 games specifically
+          if (week === 2 && completed.length > 0) {
+            const week2Msg = `🎯 Week 2 Games Found: ${completed.map(g => `${g.awayTeamAbbr}@${g.homeTeamAbbr} (${g.homeScore}-${g.awayScore})`).join(', ')}`;
+            console.log(week2Msg);
+            window.performanceDebugLogs.push(week2Msg);
+          }
+          
           completedGames.push(...completed)
         } catch (error) {
-          console.log(`${season} Week ${week} data not available`)
+          const errorMsg = `❌ ${season} Week ${week} data not available: ${error.message}`;
+          console.log(errorMsg);
+          window.performanceDebugLogs.push(errorMsg);
         }
       }
       
     } catch (error) {
       console.error('Error fetching completed games:', error)
+      const mainErrorMsg = `🚨 PERFORMANCE ERROR: ${error.message}`;
+      window.performanceDebugLogs.push(mainErrorMsg);
     }
+    
+    const finalMsg = `✅ PERFORMANCE DEBUG: Analysis complete. Found ${completedGames.length} total completed games`;
+    console.log(finalMsg);
+    window.performanceDebugLogs.push(finalMsg);
     
     return completedGames
   }
   
   const analyzeModelPerformance = (completedGames) => {
+    // Add initial debug message for performance analysis
+    const analysisMsg = `🔍 PERFORMANCE ANALYSIS: Starting analysis of ${completedGames.length} completed games`;
+    console.log(analysisMsg);
+    if (!window.performanceDebugLogs) window.performanceDebugLogs = [];
+    window.performanceDebugLogs.push(analysisMsg);
+    
+    // Log Week 2 games specifically for debugging
+    const week2Games = completedGames.filter(g => g.week === 2);
+    if (week2Games.length > 0) {
+      const week2AnalysisMsg = `🎯 WEEK 2 ANALYSIS: Processing ${week2Games.length} Week 2 games: ${week2Games.map(g => `${g.awayTeamAbbr}@${g.homeTeamAbbr}`).join(', ')}`;
+      console.log(week2AnalysisMsg);
+      window.performanceDebugLogs.push(week2AnalysisMsg);
+    }
+    
     const results = {
       totalGames: completedGames.length,
       edgeWins: 0,
@@ -87,7 +134,7 @@ export const usePerformanceData = () => {
         
         if (actualWinner === 'TIE') return
 
-        // ACTUAL Performance page logic - comprehensive analysis with smart edges
+        // Use EXACT same logic as Dashboard for consistency
         
         // Create game context for pattern matching
         const gameContext = {
@@ -101,18 +148,18 @@ export const usePerformanceData = () => {
           awayInjuries: []
         }
         
-        // Create betting lines object
+        // Create betting lines object - use the same structure as Dashboard
         const bettingLines = {
-          homeMoneyline: game.homeMoneyline,
-          awayMoneyline: game.awayMoneyline,
-          spread: game.homeSpread,
-          total: game.overUnder
+          homeMoneyline: game.bettingLines?.homeMoneyline || game.homeMoneyline,
+          awayMoneyline: game.bettingLines?.awayMoneyline || game.awayMoneyline,
+          spread: game.bettingLines?.spread || game.homeSpread,
+          total: game.bettingLines?.total || game.overUnder
         }
         
-        // Use comprehensive analysis like Performance page
+        // Use comprehensive analysis like Dashboard
         const analysis = comprehensiveGameAnalysis(homeStats, awayStats, bettingLines, gameContext)
         
-        // Helper function to get implied probability
+        // Helper function to get implied probability (EXACT same as Dashboard)
         const getImpliedProbability = (americanOdds) => {
           if (americanOdds > 0) {
             return 100 / (americanOdds + 100) * 100
@@ -121,21 +168,21 @@ export const usePerformanceData = () => {
           }
         }
         
-        // MONEYLINE ANALYSIS WITH SMART EDGES (like Performance page)
+        // MONEYLINE ANALYSIS - COPY EXACT Dashboard logic
         if (bettingLines.homeMoneyline && bettingLines.awayMoneyline) {
           const homeWinProb = analysis.probabilities.moneyline.homeWinProb * 100
           const awayWinProb = analysis.probabilities.moneyline.awayWinProb * 100
           const homeImplied = getImpliedProbability(bettingLines.homeMoneyline)
           const awayImplied = getImpliedProbability(bettingLines.awayMoneyline)
           
-          const homeBaseEdge = (homeWinProb / 100 - homeImplied / 100) * 100
-          const awayBaseEdge = (awayWinProb / 100 - awayImplied / 100) * 100
+          const homeBaseEdge = homeWinProb - homeImplied
+          const awayBaseEdge = awayWinProb - awayImplied
           
-          // Apply pattern bonuses like Performance page
+          // EXACT same pattern bonuses as Dashboard
           let mlQualityBonus = 0
           let mlPatternMatch = false
           
-          // Pattern matching logic (simplified from Performance page)
+          // Pattern matching logic (EXACT copy from Dashboard)
           if (gameContext.isDivisionGame && bettingLines.awayMoneyline >= 180 && bettingLines.awayMoneyline <= 350) {
             if (awayBaseEdge > 2) {
               mlQualityBonus += 4.5
@@ -143,7 +190,7 @@ export const usePerformanceData = () => {
             }
           }
           
-          // Value dogs pattern
+          // Value dogs pattern (EXACT copy from Dashboard)
           if (bettingLines.homeMoneyline >= 200 && homeBaseEdge > 3) {
             mlQualityBonus += 4.2
             mlPatternMatch = true
@@ -156,13 +203,13 @@ export const usePerformanceData = () => {
           const adjustedHomeMLEdge = homeBaseEdge + (homeBaseEdge > 0 ? mlQualityBonus : 0)
           const adjustedAwayMLEdge = awayBaseEdge + (awayBaseEdge > 0 ? mlQualityBonus : 0)
           
-          // Selective criteria like Performance page
+          // EXACT same criteria as Dashboard
           const mlMinEdge = mlPatternMatch ? 5.5 : 8.5
           
           let mlPrediction = null
           let mlOdds = 0
           
-          // Don't bet short favorites
+          // EXACT same exclusion logic as Dashboard
           if (adjustedHomeMLEdge >= mlMinEdge && 
               !(bettingLines.homeMoneyline >= -180 && bettingLines.homeMoneyline <= -120)) {
             mlPrediction = 'HOME'
@@ -176,6 +223,16 @@ export const usePerformanceData = () => {
           if (mlPrediction) {
             const isWin = mlPrediction === actualWinner
             const units = calculateUnits(mlOdds, isWin, 1)
+            
+            // DEBUG: Log each moneyline bet for comparison
+            if (game.week === 2) {
+              const debugMsg = `🎯 PERFORMANCE ML BET: ${game.awayTeamAbbr} @ ${game.homeTeamAbbr} - Predicted: ${mlPrediction}, Actual: ${actualWinner}, ${isWin ? 'WIN' : 'LOSS'}`;
+              console.log(debugMsg);
+              
+              // Store for mobile display
+              if (!window.performanceDebugLogs) window.performanceDebugLogs = [];
+              window.performanceDebugLogs.push(debugMsg);
+            }
             
             results.winRateByBetType.moneyline.total++
             results.winRateByBetType.moneyline.units += units
@@ -195,17 +252,19 @@ export const usePerformanceData = () => {
           }
         }
 
-        // Spread analysis
-        if (game.homeSpread !== undefined) {
+        // Spread analysis - MATCH Dashboard logic exactly
+        if (bettingLines.spread !== undefined) {
           const spreadAnalysis = calculateAdvancedSpreadProb(homeStats, awayStats, game)
           
           if (spreadAnalysis.recommendation && spreadAnalysis.recommendation !== 'PASS') {
             const actualMargin = actualHomeScore - actualAwayScore
-            const homeSpreadResult = actualMargin + game.homeSpread > 0
-            const awaySpreadResult = actualMargin + game.homeSpread < 0
             
-            const isSpreadWin = (spreadAnalysis.recommendation === 'HOME' && homeSpreadResult) ||
-                               (spreadAnalysis.recommendation === 'AWAY' && awaySpreadResult)
+            // Calculate who actually covered the spread
+            const homeCovers = actualMargin + bettingLines.spread > 0;
+            
+            // Check if our recommendation was correct
+            const isSpreadWin = (spreadAnalysis.recommendation === 'HOME' && homeCovers) ||
+                               (spreadAnalysis.recommendation === 'AWAY' && !homeCovers)
             
             const spreadUnits = calculateUnits(-110, isSpreadWin, 1)
             
@@ -213,6 +272,16 @@ export const usePerformanceData = () => {
             results.winRateByBetType.spread.units += spreadUnits
             results.totalUnits += spreadUnits
             results.totalBets++
+            
+            // DEBUG: Log each spread bet for comparison
+            if (game.week === 2) {
+              const debugMsg = `🎯 PERFORMANCE SPREAD BET: ${game.awayTeamAbbr} @ ${game.homeTeamAbbr} - Predicted: ${spreadAnalysis.recommendation}, Covers: ${homeCovers ? 'HOME' : 'AWAY'}, ${isSpreadWin ? 'WIN' : 'LOSS'}`;
+              console.log(debugMsg);
+              
+              // Store for mobile display
+              if (!window.performanceDebugLogs) window.performanceDebugLogs = [];
+              window.performanceDebugLogs.push(debugMsg);
+            }
             
             if (isSpreadWin) {
               results.edgeWins++
@@ -227,15 +296,16 @@ export const usePerformanceData = () => {
           }
         }
 
-        // Over/Under analysis
-        if (game.overUnder) {
+        // Over/Under analysis - MATCH Dashboard logic exactly
+        if (bettingLines.total) {
           const totalScore = actualHomeScore + actualAwayScore
           const predictedTotal = mlAnalysis.projectedHomeScore + mlAnalysis.projectedAwayScore
           
-          if (Math.abs(predictedTotal - game.overUnder) >= 3) {
-            const prediction = predictedTotal > game.overUnder ? 'OVER' : 'UNDER'
-            const isTotalWin = (prediction === 'OVER' && totalScore > game.overUnder) ||
-                              (prediction === 'UNDER' && totalScore < game.overUnder)
+          if (Math.abs(predictedTotal - bettingLines.total) >= 3) {
+            // Check if our prediction was correct
+            const prediction = predictedTotal > bettingLines.total ? 'OVER' : 'UNDER'
+            const isTotalWin = (prediction === 'OVER' && totalScore > bettingLines.total) ||
+                              (prediction === 'UNDER' && totalScore < bettingLines.total)
             
             const totalUnits = calculateUnits(-110, isTotalWin, 1)
             
@@ -243,6 +313,16 @@ export const usePerformanceData = () => {
             results.winRateByBetType.overunder.units += totalUnits
             results.totalUnits += totalUnits
             results.totalBets++
+            
+            // DEBUG: Log each total bet for comparison
+            if (game.week === 2) {
+              const debugMsg = `🎯 PERFORMANCE TOTAL BET: ${game.awayTeamAbbr} @ ${game.homeTeamAbbr} - Predicted: ${prediction}, Actual Total: ${totalScore} vs Line: ${bettingLines.total}, ${isTotalWin ? 'WIN' : 'LOSS'}`;
+              console.log(debugMsg);
+              
+              // Store for mobile display
+              if (!window.performanceDebugLogs) window.performanceDebugLogs = [];
+              window.performanceDebugLogs.push(debugMsg);
+            }
             
             if (isTotalWin) {
               results.edgeWins++

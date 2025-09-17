@@ -1,98 +1,7 @@
-import { useState, useEffect } from 'react'
 import { useTheme } from '../contexts/ThemeContext'
-import { usePerformanceData } from '../hooks/usePerformanceData'
 
 function Homepage({ onNavigate }) {
   const { isDarkMode } = useTheme()
-  const [copiedAddress, setCopiedAddress] = useState(false)
-  const [performanceStats, setPerformanceStats] = useState({
-    overallWinRate: 94.2, // Default fallback
-    totalUnits: 0,
-    totalBets: 0
-  })
-  const { loadPerformanceData, loading: statsLoading } = usePerformanceData()
-
-  // Placeholder contract address - replace when token is deployed
-  const contractAddress = "0x1234567890123456789012345678901234567890"
-
-  useEffect(() => {
-    loadPerformanceStats()
-  }, [])
-
-  const loadPerformanceStats = async () => {
-    try {
-      
-      // Since Performance page shows 26W/9L=74.3% for 2025,
-      // use that data and it will auto-update when Performance page updates
-      const performanceResults = {
-        edgeWins: 26,      // Current Performance page shows 26 wins
-        edgeLosses: 9,     // Current Performance page shows 9 losses
-        totalUnits: 5.25,  // Approximate units from Performance page
-      }
-      
-      const totalWins = performanceResults.edgeWins
-      const totalLosses = performanceResults.edgeLosses
-      const totalBets = totalWins + totalLosses
-      const winRate = totalBets > 0 ? (totalWins / totalBets) * 100 : 0
-      
-      setPerformanceStats({
-        overallWinRate: winRate,
-        totalUnits: performanceResults.totalUnits,
-        totalBets: totalBets
-      })
-      
-    } catch (error) {
-      console.error('🏠 Homepage: Error loading performance stats:', error)
-    }
-  }
-
-  // Copy the EXACT logic the Performance page uses to get games
-  const getCompletedGamesFromPerformancePage = async () => {
-    const completedGames = []
-    
-    try {
-      const season = 2025 // Use 2025 like Performance page
-      const weeksToAnalyze = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18]
-      
-      for (const week of weeksToAnalyze) {
-        try {
-          const weekGames = await nflDataPyService.getWeekSchedule(season, week, 'REG')
-          const transformedGames = nflDataPyService.transformScheduleToGameFormat(weekGames)
-          
-          const completed = transformedGames.filter(game => game.isCompleted)
-          completedGames.push(...completed)
-        } catch (error) {
-          // Week not available yet
-        }
-      }
-      
-    } catch (error) {
-      console.error('Error fetching games:', error)
-    }
-    
-    return completedGames
-  }
-
-  // This function will use the EXACT same betting logic as the Performance page
-  const analyzeExactlyLikePerformancePage = (completedGames) => {
-    // For now, return the known Performance page results
-    // This will be dynamically calculated as more games complete
-    return {
-      edgeWins: 26,      // Current Performance page values
-      edgeLosses: 9,     // Current Performance page values  
-      totalUnits: 5.25,  // Current Performance page values
-      totalGames: completedGames.length
-    }
-    
-    // TODO: Once we have the exact Performance page logic working,
-    // this will calculate the real values from completedGames
-  }
-
-  const copyToClipboard = (text) => {
-    navigator.clipboard.writeText(text)
-    setCopiedAddress(true)
-    setTimeout(() => setCopiedAddress(false), 2000)
-  }
 
   const features = [
     {
@@ -194,26 +103,6 @@ function Homepage({ onNavigate }) {
             betting edges. Powered by real-time data, AI algorithms, and the Solana blockchain.
           </p>
           
-          <div className="hero-stats">
-            <div className="stat">
-              <div className="stat-value">$2.4M</div>
-              <div className="stat-label">Market Cap</div>
-            </div>
-            <div className="stat">
-              <div className="stat-value">15,847</div>
-              <div className="stat-label">Holders</div>
-            </div>
-            <div className="stat">
-              <div className="stat-value">
-                {statsLoading ? (
-                  "..."
-                ) : (
-                  `${performanceStats.overallWinRate.toFixed(1)}%`
-                )}
-              </div>
-              <div className="stat-label">Win Rate</div>
-            </div>
-          </div>
 
           <div className="hero-actions">
             <a 
@@ -245,13 +134,6 @@ function Homepage({ onNavigate }) {
             </button>
           </div>
 
-          <div className="contract-address">
-            <span>Contract: </span>
-            <code onClick={() => copyToClipboard(contractAddress)}>
-              {contractAddress.slice(0, 6)}...{contractAddress.slice(-4)}
-              {copiedAddress ? " ✅" : " 📋"}
-            </code>
-          </div>
         </div>
         
         <div className="hero-visual">
