@@ -92,7 +92,7 @@ function Homepage({ onNavigate }) {
       <section className="hero-section">
         <div className="hero-content">
           <div className="hero-badge">
-            🚀 Launching Soon on Solana
+            🚀 Launching Today on Solana
           </div>
           <h1 className="hero-title">
             NFL Edge Finder
