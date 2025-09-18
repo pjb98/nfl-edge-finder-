@@ -107,11 +107,20 @@ class NFLDataPyService {
 
   // Get schedule for specific week
   async getWeekSchedule(year = 2025, week = 1, seasonType = 'REG') {
-    return await this.fetchFromAPI('/schedules/week', {
-      year: year,
-      week: week,
-      season_type: seasonType
-    });
+    const response = await this.fetchFromAPI(`/schedule/${year}/${week}`);
+
+    // Handle Railway backend response format
+    if (response && response.status === 'success' && response.data) {
+      return response.data;
+    }
+
+    // Handle direct array response (for backward compatibility)
+    if (Array.isArray(response)) {
+      return response;
+    }
+
+    console.warn('Unexpected response format from getWeekSchedule:', response);
+    return [];
   }
 
   // Get team statistics
