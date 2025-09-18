@@ -106,7 +106,7 @@ function Homepage({ onNavigate }) {
 
           <div className="hero-actions">
             <a 
-              href="https://dexscreener.com/solana/YOUR_TOKEN_ADDRESS_HERE" 
+              href="https://dexscreener.com/solana/5qSFgWNchc2n8XwvKpTGvqnMgUAChES7McrVfi4QnGYq" 
               target="_blank" 
               rel="noopener noreferrer"
               className="btn-primary"
@@ -252,7 +252,7 @@ function Homepage({ onNavigate }) {
             
             <div className="cta-actions">
               <a 
-                href="https://dexscreener.com/solana/YOUR_TOKEN_ADDRESS_HERE" 
+                href="https://dexscreener.com/solana/5qSFgWNchc2n8XwvKpTGvqnMgUAChES7McrVfi4QnGYq" 
                 target="_blank" 
                 rel="noopener noreferrer"
                 className="btn-primary large"
