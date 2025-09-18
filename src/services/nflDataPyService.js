@@ -6,17 +6,25 @@ class NFLDataPyService {
   constructor() {
     // Auto-detect the correct backend URL based on current hostname
     const currentHost = window.location.hostname;
-    const backendHost = currentHost === 'localhost' || currentHost === '127.0.0.1' 
-      ? 'localhost' 
-      : currentHost; // Use the same IP as the frontend
-    
-    this.baseURL = `http://${backendHost}:5001/api`;
+
+    // Only use Python backend on localhost, disable in production
+    this.isLocalhost = currentHost === 'localhost' || currentHost === '127.0.0.1';
+
+    if (this.isLocalhost) {
+      this.baseURL = `http://localhost:5001/api`;
+    } else {
+      this.baseURL = null; // Disable backend in production
+    }
+
     this.cache = new Map();
     this.cacheExpiry = 5 * 60 * 1000; // 5 minutes to match backend
-    
+
     console.log('🐍 NFL Data Python Service initialized');
-    console.log('🔗 Backend URL:', this.baseURL);
-    console.log('📱 Detected host:', currentHost, '-> Backend host:', backendHost);
+    if (this.isLocalhost) {
+      console.log('🔗 Backend URL:', this.baseURL);
+    } else {
+      console.log('🌐 Production mode: Using static data fallbacks');
+    }
   }
 
   // Check if cache is valid
@@ -26,6 +34,12 @@ class NFLDataPyService {
 
   // Generic API fetch with error handling
   async fetchFromAPI(endpoint, params = {}) {
+    // In production, return empty data instead of trying to connect to backend
+    if (!this.isLocalhost) {
+      console.log(`🌐 Production mode: Skipping ${endpoint}, using static data`);
+      return this.getStaticFallbackData(endpoint, params);
+    }
+
     // Ensure endpoint starts with / for proper URL construction
     const cleanEndpoint = endpoint.startsWith('/') ? endpoint : `/${endpoint}`;
     const fullURL = `${this.baseURL}${cleanEndpoint}`;
@@ -308,12 +322,29 @@ class NFLDataPyService {
     console.log('🗑️ NFL Data Python service cache cleared');
   }
 
+  // Static fallback data for production
+  getStaticFallbackData(endpoint, params) {
+    console.log(`📦 Using static fallback for ${endpoint}`);
+
+    // Return empty but valid data structures for different endpoints
+    if (endpoint.includes('schedule')) {
+      return []; // Empty schedule - no games
+    } else if (endpoint.includes('standings')) {
+      return []; // Empty standings
+    } else if (endpoint.includes('stats')) {
+      return {}; // Empty stats object
+    }
+
+    // Default fallback
+    return null;
+  }
+
   // Get cache stats
   getCacheStats() {
-    const validEntries = Array.from(this.cache.values()).filter(entry => 
+    const validEntries = Array.from(this.cache.values()).filter(entry =>
       this.isCacheValid(entry)
     ).length;
-    
+
     return {
       totalEntries: this.cache.size,
       validEntries,
