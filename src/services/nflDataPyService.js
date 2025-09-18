@@ -13,17 +13,19 @@ class NFLDataPyService {
     if (this.isLocalhost) {
       this.baseURL = `http://localhost:5001/api`;
     } else {
-      this.baseURL = null; // Disable backend in production
+      // Use Railway backend in production
+      this.baseURL = 'https://web-production-fe24.up.railway.app/api';
     }
 
     this.cache = new Map();
     this.cacheExpiry = 5 * 60 * 1000; // 5 minutes to match backend
 
     console.log('🐍 NFL Data Python Service initialized');
-    if (this.isLocalhost) {
+    if (this.baseURL) {
       console.log('🔗 Backend URL:', this.baseURL);
+      console.log(this.isLocalhost ? '🏠 Local development mode' : '🚀 Production mode with Railway backend');
     } else {
-      console.log('🌐 Production mode: Using static data fallbacks');
+      console.log('🌐 No backend configured: Using static data fallbacks');
     }
   }
 
@@ -34,9 +36,9 @@ class NFLDataPyService {
 
   // Generic API fetch with error handling
   async fetchFromAPI(endpoint, params = {}) {
-    // In production, return empty data instead of trying to connect to backend
-    if (!this.isLocalhost) {
-      console.log(`🌐 Production mode: Skipping ${endpoint}, using static data`);
+    // Check if we have a valid backend URL
+    if (!this.baseURL) {
+      console.log(`🌐 No backend URL configured, using static data`);
       return this.getStaticFallbackData(endpoint, params);
     }
 
