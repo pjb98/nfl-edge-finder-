@@ -268,14 +268,8 @@ function Homepage({ onNavigate }) {
               <a href="https://x.com/statstack_onsol" target="_blank" rel="noopener noreferrer">
                 🐦 Twitter
               </a>
-              <a href="#" target="_blank" rel="noopener noreferrer">
-                💬 Discord
-              </a>
               <a href="https://t.me/StatStack" target="_blank" rel="noopener noreferrer">
                 📱 Telegram
-              </a>
-              <a href="#" target="_blank" rel="noopener noreferrer">
-                📄 Whitepaper
               </a>
             </div>
           </div>
@@ -289,35 +283,6 @@ function Homepage({ onNavigate }) {
             <div className="footer-brand">
               <h3>NFL Edge Finder</h3>
               <p>Powered by $NFE Token</p>
-            </div>
-            <div className="footer-links">
-              <div className="footer-section">
-                <h4>Platform</h4>
-                <ul>
-                  <li><a href="#">Analytics Dashboard</a></li>
-                  <li><a href="#">Player Props</a></li>
-                  <li><a href="#">Live Odds</a></li>
-                  <li><a href="#">Portfolio Tracker</a></li>
-                </ul>
-              </div>
-              <div className="footer-section">
-                <h4>Token</h4>
-                <ul>
-                  <li><a href="#">Tokenomics</a></li>
-                  <li><a href="#">Staking</a></li>
-                  <li><a href="#">Governance</a></li>
-                  <li><a href="#">Rewards</a></li>
-                </ul>
-              </div>
-              <div className="footer-section">
-                <h4>Community</h4>
-                <ul>
-                  <li><a href="#">Discord</a></li>
-                  <li><a href="https://x.com/statstack_onsol">Twitter</a></li>
-                  <li><a href="https://t.me/StatStack">Telegram</a></li>
-                  <li><a href="#">Reddit</a></li>
-                </ul>
-              </div>
             </div>
           </div>
           <div className="footer-bottom">
